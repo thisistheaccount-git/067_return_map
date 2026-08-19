@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<title>返却位置までのご案内</title>
+<style>
+  :root{
+    --bg:#0b0d10;
+    --accent:#ff9a4d;
+    --dot:rgba(255,255,255,.35);
+    --dot-active:#ffffff;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; height:100%; background:var(--bg);
+    overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;
+    color:#fff; user-select:none;
+  }
+  #app{position:fixed; inset:0; display:flex; flex-direction:column;}
+
+  header{
+    position:relative; z-index:5; padding:12px 16px 8px;
+    background:linear-gradient(to bottom, rgba(0,0,0,.6), rgba(0,0,0,0));
+  }
+  header .toprow{display:flex; align-items:flex-start; justify-content:space-between; gap:10px;}
+  header .title{font-size:13px; font-weight:600; letter-spacing:.02em; opacity:.9; line-height:1.4;}
+  header .title .en-title{font-weight:400; opacity:.75;}
+  header .count{flex:0 0 auto; font-size:13px; opacity:.75; font-variant-numeric:tabular-nums; padding-top:1px;}
+
+  .infobar{
+    display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;
+  }
+  .infobar a, .infobar .mapcode{
+    display:flex; align-items:center; gap:6px;
+    font-size:12.5px; font-weight:600; text-decoration:none; color:#fff;
+    padding:7px 12px; border-radius:999px; white-space:nowrap;
+  }
+  .infobar a{
+    background:var(--accent); color:#2a1200;
+  }
+  .infobar .mapcode{
+    background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25);
+  }
+  .infobar .mapcode b{font-weight:700; margin-left:2px;}
+
+  #track{
+    flex:1; position:relative; display:flex; height:100%;
+    transition:transform .32s cubic-bezier(.22,.61,.36,1);
+    will-change:transform;
+  }
+  #track.dragging{transition:none;}
+  .slide{
+    flex:0 0 100%; height:100%; display:flex; align-items:center; justify-content:center;
+    position:relative; background:#000;
+  }
+  .slide img{
+    width:100%; height:100%; object-fit:contain; pointer-events:none; display:block;
+  }
+  .caption{
+    position:absolute; left:12px; right:12px; top:12px; z-index:4;
+    display:flex; align-items:center; gap:10px;
+    background:rgba(0,0,0,.6); backdrop-filter:blur(2px);
+    border:1px solid rgba(255,255,255,.15);
+    border-radius:14px; padding:10px 14px;
+  }
+  .caption .num{
+    flex:0 0 auto; width:24px; height:24px; border-radius:50%;
+    background:var(--accent); color:#2a1200; font-weight:700; font-size:12px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .caption p{margin:0; font-size:16px; line-height:1.4; font-weight:600;}
+  .caption .en{display:block; font-size:13px; font-weight:400; opacity:.75; margin-top:3px;}
+
+  footer{
+    position:relative; z-index:5; padding:10px 0 max(14px, env(safe-area-inset-bottom));
+    display:flex; justify-content:center; gap:6px; flex-wrap:wrap; padding-left:20px; padding-right:20px;
+    background:linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0));
+  }
+  .dot{width:6px; height:6px; border-radius:50%; background:var(--dot); transition:background .2s, transform .2s;}
+  .dot.active{background:var(--dot-active); transform:scale(1.3);}
+
+  .nav-btn{
+    position:absolute; top:50%; transform:translateY(-50%); z-index:6;
+    width:40px; height:40px; border-radius:50%; border:none;
+    background:rgba(0,0,0,.35); color:#fff; font-size:18px; line-height:40px; text-align:center;
+    cursor:pointer;
+  }
+  .nav-btn.prev{left:10px;}
+  .nav-btn.next{right:10px;}
+  .nav-btn:disabled{opacity:0; pointer-events:none;}
+
+  #hint{
+    position:absolute; left:0; right:0; bottom:70px; z-index:8;
+    display:flex; justify-content:center; pointer-events:none;
+    opacity:1; transition:opacity .5s ease;
+  }
+  #hint.hide{opacity:0;}
+  #hint span{
+    background:rgba(0,0,0,.6); padding:9px 16px; border-radius:999px; font-size:12.5px;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="toprow">
+      <div class="title">トヨタレンタリース神奈川 川崎駅前西口店へのご返却方法 <span class="en-title">/ How to Return Your Vehicle to Toyota Rent-Lease Kanagawa, Kawasaki Station West Exit Store</span></div>
+      <div class="count"><span id="cur">1</span> / <span id="total">7</span></div>
+    </div>
+    <div class="infobar">
+      <a href="https://maps.app.goo.gl/cqf2yCzfcNSWtnwv6" target="_blank" rel="noopener">📍 地下駐車場の位置はこちら (Parking entrance)</a>
+      <span class="mapcode">Mapcode<b>98292*34</b></span>
+    </div>
+  </header>
+
+  <div id="viewport" style="position:relative; flex:1; overflow:hidden;">
+    <div id="track">
+      <div class="slide">
+        <img src="images/01.jpg" alt="手順1">
+        <div class="caption"><span class="num">1</span><p>地下駐車場の入口を左折して進入します<span class="en">(Turn left to enter the underground parking entrance.)</span></p></div>
+      </div>
+      <div class="slide">
+        <img src="images/02.jpg" alt="手順2">
+        <div class="caption"><span class="num">2</span><p>そのまま道なりに地下へ進みます<span class="en">(Follow the road straight down to the basement level.)</span></p></div>
+      </div>
+      <div class="slide">
+        <img src="images/03.jpg" alt="手順3">
+        <div class="caption"><span class="num">3</span><p>そのまま地下駐車場へ入ります。ゲート前で一旦停止します<span class="en">(Continue into the underground parking area, then stop briefly in front of the gate.)</span></p></div>
+      </div>
+      <div class="slide">
+        <img src="images/04.jpg" alt="手順4">
+        <div class="caption"><span class="num">4</span><p>ゲートでチケットを受け取ります<span class="en">(Take a ticket at the gate.)</span></p></div>
+      </div>
+      <div class="slide">
+        <img src="images/05.jpg" alt="手順5">
+        <div class="caption"><span class="num">5</span><p>そのまま一番奥まで直進します<span class="en">(Continue straight to the far end.)</span></p></div>
+      </div>
+      <div class="slide">
+        <img src="images/06.jpg" alt="手順6">
+        <div class="caption"><span class="num">6</span><p>突き当りを右折します<span class="en">(Turn right at the end of the aisle.)</span></p></div>
+      </div>
+      <div class="slide">
+        <img src="images/07.jpg" alt="手順7">
+        <div class="caption"><span class="num">7</span><p>おつかれさまでした。駐車場のチケットをスタッフへお渡しください。<span class="en">(Welcome back. Thank you for your hard work today. Please hand your parking ticket to our staff.)</span></p></div>
+      </div>
+    </div>
+
+    <button class="nav-btn prev" id="prevBtn">‹</button>
+    <button class="nav-btn next" id="nextBtn">›</button>
+
+    <div id="hint"><span>左右にスワイプして進んでください →</span></div>
+  </div>
+
+  <footer id="dots"></footer>
+</div>
+
+<script>
+(function(){
+  const viewport = document.getElementById('viewport');
+  const track = document.getElementById('track');
+  const slides = document.querySelectorAll('.slide');
+  const n = slides.length;
+  const dotsWrap = document.getElementById('dots');
+  const curEl = document.getElementById('cur');
+  const totalEl = document.getElementById('total');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const hint = document.getElementById('hint');
+  let index = 0;
+  let startX = 0, deltaX = 0, dragging = false, width = window.innerWidth;
+  let pointerId = null;
+
+  totalEl.textContent = n;
+  for(let i=0;i<n;i++){
+    const d = document.createElement('div');
+    d.className = 'dot' + (i===0 ? ' active' : '');
+    dotsWrap.appendChild(d);
+  }
+  const dots = dotsWrap.querySelectorAll('.dot');
+
+  function render(animate){
+    track.classList.toggle('dragging', !animate);
+    track.style.transform = 'translateX(' + (-index * width) + 'px)';
+    dots.forEach((d,i)=> d.classList.toggle('active', i===index));
+    curEl.textContent = index+1;
+    prevBtn.disabled = index === 0;
+    nextBtn.disabled = index === n-1;
+  }
+
+  function goTo(i){
+    index = Math.max(0, Math.min(n-1, i));
+    render(true);
+    hint.classList.add('hide');
+  }
+
+  window.addEventListener('resize', ()=>{ width = window.innerWidth; render(false); });
+
+  prevBtn.addEventListener('click', ()=> goTo(index-1));
+  nextBtn.addEventListener('click', ()=> goTo(index+1));
+
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'ArrowRight') goTo(index+1);
+    if(e.key === 'ArrowLeft') goTo(index-1);
+  });
+
+  viewport.addEventListener('pointerdown', (e)=>{
+    if(e.target.closest('.nav-btn')) return;
+    dragging = true;
+    startX = e.clientX;
+    deltaX = 0;
+    pointerId = e.pointerId;
+    viewport.setPointerCapture(pointerId);
+  });
+
+  viewport.addEventListener('pointermove', (e)=>{
+    if(!dragging || e.pointerId !== pointerId) return;
+    deltaX = e.clientX - startX;
+    track.classList.add('dragging');
+    track.style.transform = 'translateX(' + (-index*width + deltaX) + 'px)';
+  });
+
+  function endDrag(e){
+    if(!dragging || e.pointerId !== pointerId) return;
+    dragging = false;
+    hint.classList.add('hide');
+    if(Math.abs(deltaX) > width*0.15){
+      goTo(index + (deltaX < 0 ? 1 : -1));
+    } else {
+      render(true);
+    }
+    deltaX = 0;
+  }
+  viewport.addEventListener('pointerup', endDrag);
+  viewport.addEventListener('pointercancel', endDrag);
+
+  setTimeout(()=> hint.classList.add('hide'), 3200);
+  render(false);
+})();
+</script>
+</body>
+</html>
